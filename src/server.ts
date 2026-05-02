@@ -183,6 +183,153 @@ const tools = [
       },
     },
   },
+  {
+    name: 'promote_group_participants',
+    description: 'Promove participantes a admin do grupo.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'instance_token', 'participants'],
+      properties: {
+        id: { type: 'string' },
+        instance_token: { type: 'string' },
+        participants: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  },
+  {
+    name: 'demote_group_participants',
+    description: 'Remove status de admin de participantes do grupo.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'instance_token', 'participants'],
+      properties: {
+        id: { type: 'string' },
+        instance_token: { type: 'string' },
+        participants: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  },
+  {
+    name: 'remove_group_participants',
+    description: 'Remove participantes do grupo.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'instance_token', 'participants'],
+      properties: {
+        id: { type: 'string' },
+        instance_token: { type: 'string' },
+        participants: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  },
+  {
+    name: 'set_group_permissions',
+    description:
+      'Define permissoes do grupo. locked=true: so adm edita info. announce=true: so adm envia mensagem.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'instance_token'],
+      properties: {
+        id: { type: 'string' },
+        instance_token: { type: 'string' },
+        locked: { type: 'boolean' },
+        announce: { type: 'boolean' },
+      },
+    },
+  },
+  {
+    name: 'set_group_picture',
+    description:
+      'Atualiza foto do grupo. Aceita media_id (asset interno) OU data_uri (data:image/jpeg;base64,...) OU image_url (URL publica).',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'instance_token'],
+      properties: {
+        id: { type: 'string' },
+        instance_token: { type: 'string' },
+        media_id: { type: 'string' },
+        data_uri: { type: 'string' },
+        image_url: { type: 'string' },
+      },
+    },
+  },
+  {
+    name: 'bulk_create_groups',
+    description:
+      'Cria N grupos numerados sequencialmente (ex: name_template "🎁 #{N}", start_number=5, count=10 cria #5..#14). Aplica defaults do tenant (admins/desc/foto/permissoes) em cada grupo. Opcionalmente cria uma lista de grupos e/ou um shortlink ja com todos. Delays anti-ban entre grupos (default 8s).',
+    inputSchema: {
+      type: 'object',
+      required: ['name_template', 'start_number', 'count'],
+      properties: {
+        name_template: {
+          type: 'string',
+          description: 'Template com {N} substituido pelo numero. Ex: "🎁 AULAO HOJE 20H! #{N}"',
+        },
+        start_number: { type: 'integer', minimum: 0 },
+        count: { type: 'integer', minimum: 1, maximum: 50 },
+        instance_name: { type: 'string' },
+        instance_token: { type: 'string' },
+        initial_participants: { type: 'array', items: { type: 'string' } },
+        apply_defaults: { type: 'boolean', default: true },
+        delay_ms: { type: 'integer', minimum: 1000, maximum: 60000 },
+        also_create_list: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string' },
+            color: { type: 'string', description: 'Hex color' },
+          },
+        },
+        also_create_shortlink: {
+          type: 'object',
+          required: ['slug'],
+          properties: {
+            slug: { type: 'string' },
+            notes: { type: 'string' },
+            strategy: { type: 'string', enum: ['SEQUENTIAL', 'ROUND_ROBIN', 'RANDOM'] },
+            hard_cap: { type: 'integer' },
+            initial_click_budget: { type: 'integer' },
+          },
+        },
+      },
+    },
+  },
+  {
+    name: 'bulk_apply_to_groups',
+    description:
+      'Aplica config (descricao/foto/permissoes/admins) em N grupos com delays anti-ban. Picture aceita media_id, data_uri ou url.',
+    inputSchema: {
+      type: 'object',
+      required: ['instance_token', 'group_ids'],
+      properties: {
+        instance_token: { type: 'string' },
+        group_ids: { type: 'array', items: { type: 'string' }, minItems: 1 },
+        description: { type: 'string' },
+        picture_media_id: { type: 'string' },
+        picture_data_uri: { type: 'string' },
+        picture_url: { type: 'string' },
+        locked: { type: 'boolean' },
+        announce: { type: 'boolean' },
+        add_admins: { type: 'array', items: { type: 'string' } },
+        delay_ms: { type: 'integer', minimum: 1000, maximum: 60000 },
+      },
+    },
+  },
+  {
+    name: 'set_tenant_group_defaults',
+    description:
+      'Define defaults aplicados em todo grupo criado (front/api/mcp): admins, descricao, foto (media_id), locked, announce.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        default_group_admins: { type: 'array', items: { type: 'string' } },
+        default_group_description: { type: 'string' },
+        default_group_picture_media_id: { type: 'string' },
+        default_group_locked: { type: 'boolean' },
+        default_group_announce: { type: 'boolean' },
+      },
+    },
+  },
 
   // ============ GROUP LISTS (segmentação) ============
   {
@@ -788,6 +935,76 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           instanceToken: a.instance_token,
           participants: a.participants,
           asAdmin: a.as_admin,
+        });
+      case 'promote_group_participants':
+        return client.groupParticipantsAction(a.id, 'promote', {
+          instanceToken: a.instance_token,
+          participants: a.participants,
+        });
+      case 'demote_group_participants':
+        return client.groupParticipantsAction(a.id, 'demote', {
+          instanceToken: a.instance_token,
+          participants: a.participants,
+        });
+      case 'remove_group_participants':
+        return client.groupParticipantsAction(a.id, 'remove', {
+          instanceToken: a.instance_token,
+          participants: a.participants,
+        });
+      case 'set_group_permissions':
+        return client.setGroupPermissions(a.id, {
+          instanceToken: a.instance_token,
+          locked: a.locked,
+          announce: a.announce,
+        });
+      case 'set_group_picture':
+        return client.setGroupPicture(a.id, {
+          instanceToken: a.instance_token,
+          mediaId: a.media_id,
+          dataUri: a.data_uri,
+          imageUrl: a.image_url,
+        });
+      case 'bulk_create_groups':
+        return client.bulkCreateGroups({
+          nameTemplate: a.name_template,
+          startNumber: a.start_number,
+          count: a.count,
+          instanceName: a.instance_name,
+          instanceToken: a.instance_token,
+          initialParticipants: a.initial_participants,
+          applyDefaults: a.apply_defaults,
+          delayMs: a.delay_ms,
+          alsoCreateList: a.also_create_list,
+          alsoCreateShortlink: a.also_create_shortlink
+            ? {
+                slug: a.also_create_shortlink.slug,
+                notes: a.also_create_shortlink.notes,
+                strategy: a.also_create_shortlink.strategy,
+                hardCap: a.also_create_shortlink.hard_cap,
+                initialClickBudget: a.also_create_shortlink.initial_click_budget,
+              }
+            : undefined,
+        });
+      case 'bulk_apply_to_groups':
+        return client.bulkApplyToGroups({
+          instanceToken: a.instance_token,
+          groupIds: a.group_ids,
+          description: a.description,
+          pictureMediaId: a.picture_media_id,
+          pictureDataUri: a.picture_data_uri,
+          pictureUrl: a.picture_url,
+          locked: a.locked,
+          announce: a.announce,
+          addAdmins: a.add_admins,
+          delayMs: a.delay_ms,
+        });
+      case 'set_tenant_group_defaults':
+        return client.updateTenantGroupDefaults({
+          defaultGroupAdmins: a.default_group_admins,
+          defaultGroupDescription: a.default_group_description,
+          defaultGroupPictureMediaId: a.default_group_picture_media_id,
+          defaultGroupLocked: a.default_group_locked,
+          defaultGroupAnnounce: a.default_group_announce,
         });
 
       // group lists

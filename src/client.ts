@@ -116,6 +116,77 @@ export class ZappfyClient {
     const { data } = await this.http.post(`/groups/${id}/participants`, payload);
     return data;
   }
+  async groupParticipantsAction(
+    id: string,
+    action: 'promote' | 'demote' | 'remove',
+    payload: { instanceToken: string; participants: string[] },
+  ) {
+    const { data } = await this.http.post(`/groups/${id}/participants/${action}`, payload);
+    return data;
+  }
+  async setGroupPermissions(id: string, payload: {
+    instanceToken: string;
+    locked?: boolean;
+    announce?: boolean;
+  }) {
+    const { data } = await this.http.post(`/groups/${id}/permissions`, payload);
+    return data;
+  }
+  async setGroupPicture(id: string, payload: {
+    instanceToken: string;
+    mediaId?: string;
+    dataUri?: string;
+    imageUrl?: string;
+  }) {
+    const { data } = await this.http.post(`/groups/${id}/picture`, payload);
+    return data;
+  }
+  async bulkCreateGroups(payload: {
+    nameTemplate: string;
+    startNumber: number;
+    count: number;
+    instanceName?: string;
+    instanceToken?: string;
+    initialParticipants?: string[];
+    applyDefaults?: boolean;
+    delayMs?: number;
+    alsoCreateList?: { name: string; color?: string };
+    alsoCreateShortlink?: {
+      slug: string;
+      notes?: string;
+      strategy?: 'SEQUENTIAL' | 'ROUND_ROBIN' | 'RANDOM';
+      hardCap?: number;
+      initialClickBudget?: number;
+    };
+  }) {
+    const { data } = await this.http.post('/groups/bulk-create', payload);
+    return data;
+  }
+  async bulkApplyToGroups(payload: {
+    instanceToken: string;
+    groupIds: string[];
+    description?: string;
+    pictureMediaId?: string;
+    pictureDataUri?: string;
+    pictureUrl?: string;
+    locked?: boolean;
+    announce?: boolean;
+    addAdmins?: string[];
+    delayMs?: number;
+  }) {
+    const { data } = await this.http.post('/groups/bulk-apply', payload);
+    return data;
+  }
+  async updateTenantGroupDefaults(payload: {
+    defaultGroupAdmins?: string[];
+    defaultGroupDescription?: string | null;
+    defaultGroupPictureMediaId?: string | null;
+    defaultGroupLocked?: boolean;
+    defaultGroupAnnounce?: boolean;
+  }) {
+    const { data } = await this.http.patch('/tenant/group-defaults', payload);
+    return data;
+  }
 
   // ---------- Group Lists (segmentação) ----------
   async listGroupLists() {
