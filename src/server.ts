@@ -568,28 +568,49 @@ const tools = [
   {
     name: 'create_shortlink',
     description:
-      'Cria shortlink fixo pra invite de um grupo (URL pública /g/:slug que sempre redireciona pro convite atual, com refresh on-demand TTL 10min).',
+      'Cria shortlink (URL pública /g/:slug) que rotaciona entre N grupos. Quando um grupo lota (participantsCount >= hardCap), pula automaticamente pro próximo. Suporta auto-create (cria grupo novo via Uazapi quando todos lotam). Estratégias: SEQUENTIAL (enche um, vai pro próximo), ROUND_ROBIN (distribui), RANDOM.',
     inputSchema: {
       type: 'object',
-      required: ['slug', 'group_remote_id'],
+      required: ['slug', 'group_ids'],
       properties: {
         slug: { type: 'string', description: 'ex: clientes-vip' },
-        group_remote_id: { type: 'string' },
-        instance_name: { type: 'string' },
-        instance_token: { type: 'string' },
+        group_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'IDs internos dos grupos (do banco, não remoteId)',
+        },
+        notes: { type: 'string' },
+        strategy: { type: 'string', enum: ['SEQUENTIAL', 'ROUND_ROBIN', 'RANDOM'] },
+        hard_cap: { type: 'number', description: 'Limite real do grupo (default 900, max 1024)' },
+        initial_click_budget: {
+          type: 'number',
+          description: 'Cliques antes do 1º recheck via Uazapi (default 800)',
+        },
+        capacity_source: { type: 'string', enum: ['UAZAPI', 'CLICK_COUNT'] },
+        auto_create: { type: 'boolean' },
+        auto_create_instance: { type: 'string' },
+        auto_create_template: { type: 'string', description: 'ex: "Grupo {N}"' },
       },
     },
   },
   {
     name: 'update_shortlink',
-    description: 'Atualiza slug ou grupo de destino do shortlink.',
+    description: 'Atualiza configuração do shortlink (slug, strategy, caps, auto-create, ativo, etc).',
     inputSchema: {
       type: 'object',
       required: ['id'],
       properties: {
         id: { type: 'string' },
         slug: { type: 'string' },
-        groupRemoteId: { type: 'string' },
+        notes: { type: 'string' },
+        active: { type: 'boolean' },
+        strategy: { type: 'string', enum: ['SEQUENTIAL', 'ROUND_ROBIN', 'RANDOM'] },
+        hard_cap: { type: 'number' },
+        initial_click_budget: { type: 'number' },
+        capacity_source: { type: 'string', enum: ['UAZAPI', 'CLICK_COUNT'] },
+        auto_create: { type: 'boolean' },
+        auto_create_instance: { type: 'string' },
+        auto_create_template: { type: 'string' },
       },
     },
   },
@@ -603,12 +624,69 @@ const tools = [
     },
   },
   {
-    name: 'refresh_shortlink',
-    description: 'Força refresh do invite link cacheado (chama Uazapi /group/info).',
+    name: 'add_groups_to_shortlink',
+    description: 'Adiciona N grupos ao pool de rotação do shortlink (sem duplicar).',
     inputSchema: {
       type: 'object',
-      required: ['id'],
-      properties: { id: { type: 'string' } },
+      required: ['id', 'group_ids'],
+      properties: {
+        id: { type: 'string' },
+        group_ids: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  },
+  {
+    name: 'remove_shortlink_item',
+    description: 'Remove um grupo específico (item) do shortlink.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'item_id'],
+      properties: {
+        id: { type: 'string' },
+        item_id: { type: 'string' },
+      },
+    },
+  },
+  {
+    name: 'reorder_shortlink_items',
+    description: 'Reordena os items do shortlink (afeta strategy SEQUENTIAL).',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'item_ids'],
+      properties: {
+        id: { type: 'string' },
+        item_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Nova ordem completa dos itemIds',
+        },
+      },
+    },
+  },
+  {
+    name: 'update_shortlink_item',
+    description: 'Atualiza status (ACTIVE/FULL/INVALID/DISABLED) ou order de um item específico.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'item_id'],
+      properties: {
+        id: { type: 'string' },
+        item_id: { type: 'string' },
+        order: { type: 'number' },
+        status: { type: 'string', enum: ['ACTIVE', 'FULL', 'INVALID', 'DISABLED'] },
+      },
+    },
+  },
+  {
+    name: 'refresh_shortlink_invite',
+    description: 'Força refresh do invite de um item específico via Uazapi /group/info.',
+    inputSchema: {
+      type: 'object',
+      required: ['id', 'item_id'],
+      properties: {
+        id: { type: 'string' },
+        item_id: { type: 'string' },
+      },
     },
   },
 
@@ -841,13 +919,43 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       case 'create_shortlink':
         return client.createShortlink({
           slug: a.slug,
-          groupRemoteId: a.group_remote_id,
-          instanceName: a.instance_name,
-          instanceToken: a.instance_token,
+          groupIds: a.group_ids,
+          notes: a.notes,
+          strategy: a.strategy,
+          hardCap: a.hard_cap,
+          initialClickBudget: a.initial_click_budget,
+          capacitySource: a.capacity_source,
+          autoCreate: a.auto_create,
+          autoCreateInstance: a.auto_create_instance,
+          autoCreateTemplate: a.auto_create_template,
         });
-      case 'update_shortlink': return client.updateShortlink(a.id, a);
+      case 'update_shortlink':
+        return client.updateShortlink(a.id, {
+          slug: a.slug,
+          notes: a.notes,
+          active: a.active,
+          strategy: a.strategy,
+          hardCap: a.hard_cap,
+          initialClickBudget: a.initial_click_budget,
+          capacitySource: a.capacity_source,
+          autoCreate: a.auto_create,
+          autoCreateInstance: a.auto_create_instance,
+          autoCreateTemplate: a.auto_create_template,
+        });
       case 'delete_shortlink': return client.deleteShortlink(a.id);
-      case 'refresh_shortlink': return client.refreshShortlink(a.id);
+      case 'add_groups_to_shortlink':
+        return client.addGroupsToShortlink(a.id, a.group_ids);
+      case 'remove_shortlink_item':
+        return client.removeShortlinkItem(a.id, a.item_id);
+      case 'reorder_shortlink_items':
+        return client.reorderShortlinkItems(a.id, a.item_ids);
+      case 'update_shortlink_item':
+        return client.updateShortlinkItem(a.id, a.item_id, {
+          order: a.order,
+          status: a.status,
+        });
+      case 'refresh_shortlink_invite':
+        return client.refreshShortlinkInvite(a.id, a.item_id);
 
       // calendar
       case 'calendar_events': return client.calendarEvents({ from: a.from, to: a.to });

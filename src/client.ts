@@ -284,9 +284,15 @@ export class ZappfyClient {
   }
   async createShortlink(payload: {
     slug: string;
-    groupRemoteId: string;
-    instanceName?: string;
-    instanceToken?: string;
+    groupIds: string[];
+    notes?: string;
+    strategy?: 'SEQUENTIAL' | 'ROUND_ROBIN' | 'RANDOM';
+    hardCap?: number;
+    initialClickBudget?: number;
+    capacitySource?: 'UAZAPI' | 'CLICK_COUNT';
+    autoCreate?: boolean;
+    autoCreateInstance?: string;
+    autoCreateTemplate?: string;
   }) {
     const { data } = await this.http.post('/shortlinks', payload);
     return data;
@@ -299,8 +305,28 @@ export class ZappfyClient {
     const { data } = await this.http.delete(`/shortlinks/${id}`);
     return data;
   }
-  async refreshShortlink(id: string) {
-    const { data } = await this.http.post(`/shortlinks/${id}/refresh`);
+  async addGroupsToShortlink(id: string, groupIds: string[]) {
+    const { data } = await this.http.post(`/shortlinks/${id}/items`, { groupIds });
+    return data;
+  }
+  async removeShortlinkItem(id: string, itemId: string) {
+    const { data } = await this.http.delete(`/shortlinks/${id}/items/${itemId}`);
+    return data;
+  }
+  async reorderShortlinkItems(id: string, itemIds: string[]) {
+    const { data } = await this.http.post(`/shortlinks/${id}/items/reorder`, { itemIds });
+    return data;
+  }
+  async updateShortlinkItem(
+    id: string,
+    itemId: string,
+    payload: { order?: number; status?: 'ACTIVE' | 'FULL' | 'INVALID' | 'DISABLED' },
+  ) {
+    const { data } = await this.http.patch(`/shortlinks/${id}/items/${itemId}`, payload);
+    return data;
+  }
+  async refreshShortlinkInvite(id: string, itemId: string) {
+    const { data } = await this.http.post(`/shortlinks/${id}/items/${itemId}/refresh`);
     return data;
   }
 
