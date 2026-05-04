@@ -360,7 +360,7 @@ export class ZappfyClient {
     strategy?: 'SEQUENTIAL' | 'ROUND_ROBIN' | 'RANDOM';
     hardCap?: number;
     initialClickBudget?: number;
-    capacitySource?: 'UAZAPI' | 'CLICK_COUNT';
+    capacitySource?: 'ZAPPFY' | 'CLICK_COUNT';
     autoCreate?: boolean;
     autoCreateInstance?: string;
     autoCreateTemplate?: string;

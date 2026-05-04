@@ -128,7 +128,7 @@ const tools = [
   {
     name: 'sync_groups',
     description:
-      'Sincroniza grupos do WhatsApp via Uazapi pra dentro do banco. Usa defaults do tenant se não passar instância.',
+      'Sincroniza grupos do WhatsApp via Zappfy pra dentro do banco. Usa defaults do tenant se não passar instância.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -140,7 +140,7 @@ const tools = [
   {
     name: 'create_group',
     description:
-      'Cria grupo via Uazapi com participantes iniciais. Por padrão promove TODOS os participantes da criação a admin.',
+      'Cria grupo via Zappfy com participantes iniciais. Por padrão promove TODOS os participantes da criação a admin.',
     inputSchema: {
       type: 'object',
       required: ['name', 'participants'],
@@ -715,7 +715,7 @@ const tools = [
   {
     name: 'create_shortlink',
     description:
-      'Cria shortlink (URL pública /g/:slug) que rotaciona entre N grupos. Quando um grupo lota (participantsCount >= hardCap), pula automaticamente pro próximo. Suporta auto-create (cria grupo novo via Uazapi quando todos lotam). Estratégias: SEQUENTIAL (enche um, vai pro próximo), ROUND_ROBIN (distribui), RANDOM.',
+      'Cria shortlink (URL pública /g/:slug) que rotaciona entre N grupos. Quando um grupo lota (participantsCount >= hardCap), pula automaticamente pro próximo. Suporta auto-create (cria grupo novo via Zappfy quando todos lotam). Estratégias: SEQUENTIAL (enche um, vai pro próximo), ROUND_ROBIN (distribui), RANDOM.',
     inputSchema: {
       type: 'object',
       required: ['slug', 'group_ids'],
@@ -731,9 +731,9 @@ const tools = [
         hard_cap: { type: 'number', description: 'Limite real do grupo (default 900, max 1024)' },
         initial_click_budget: {
           type: 'number',
-          description: 'Cliques antes do 1º recheck via Uazapi (default 800)',
+          description: 'Cliques antes do 1º recheck via Zappfy (default 800)',
         },
-        capacity_source: { type: 'string', enum: ['UAZAPI', 'CLICK_COUNT'] },
+        capacity_source: { type: 'string', enum: ['ZAPPFY', 'CLICK_COUNT'] },
         auto_create: { type: 'boolean' },
         auto_create_instance: { type: 'string' },
         auto_create_template: { type: 'string', description: 'ex: "Grupo {N}"' },
@@ -754,7 +754,7 @@ const tools = [
         strategy: { type: 'string', enum: ['SEQUENTIAL', 'ROUND_ROBIN', 'RANDOM'] },
         hard_cap: { type: 'number' },
         initial_click_budget: { type: 'number' },
-        capacity_source: { type: 'string', enum: ['UAZAPI', 'CLICK_COUNT'] },
+        capacity_source: { type: 'string', enum: ['ZAPPFY', 'CLICK_COUNT'] },
         auto_create: { type: 'boolean' },
         auto_create_instance: { type: 'string' },
         auto_create_template: { type: 'string' },
@@ -826,7 +826,7 @@ const tools = [
   },
   {
     name: 'refresh_shortlink_invite',
-    description: 'Força refresh do invite de um item específico via Uazapi /group/info.',
+    description: 'Força refresh do invite de um item específico via Zappfy /group/info.',
     inputSchema: {
       type: 'object',
       required: ['id', 'item_id'],

@@ -36,7 +36,7 @@ pnpm build
 - `list_shortlinks`, `get_shortlink`, `create_shortlink`, `update_shortlink`, `delete_shortlink`
 - `add_groups_to_shortlink`, `remove_shortlink_item`, `reorder_shortlink_items`
 - `update_shortlink_item` — status (ACTIVE/FULL/INVALID/DISABLED) ou order
-- `refresh_shortlink_invite` — força refresh do invite via Uazapi
+- `refresh_shortlink_invite` — força refresh do invite via Zappfy
 
 ### Mídias
 
@@ -45,7 +45,7 @@ pnpm build
 ### Mensagens (texto, mídia ou **enquete**)
 
 - `list_messages`, `get_message`, `create_message`, `update_message`, `delete_message`
-  - **Enquete:** `create_message` aceita `poll_choices: string[]` (≥2) e `poll_selectable_count` (default 1). Quando preenchido, o worker dispara via `uazapi.sendPoll`.
+  - **Enquete:** `create_message` aceita `poll_choices: string[]` (≥2) e `poll_selectable_count` (default 1). Quando preenchido, o worker dispara via `zappfy.sendPoll`.
 - `preview_message` — preview com spintax + variáveis dinâmicas (1-20 amostras)
 - `send_message_now` — dispara imediato
 - `message_active_schedules`
